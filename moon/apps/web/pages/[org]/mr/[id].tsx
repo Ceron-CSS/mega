@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Card, Tabs, TabsProps,Timeline,} from 'antd';
 // import { CommentOutlined, MergeOutlined, CloseCircleOutlined, PullRequestOutlined } from '@ant-design/icons';
 import { ChevronRightCircleIcon, ChevronSelectIcon,AlarmIcon,ClockIcon} from '@gitmono/ui/Icons'
@@ -24,6 +24,9 @@ import { usePostMrMerge } from '@/hooks/usePostMrMerge'
 import { usePostMrReopen } from '@/hooks/usePostMrReopen';
 import { usePostMrClose } from '@/hooks/usePostMrClose';
 import { useScope } from '@/contexts/scope'
+import { SimpleNoteContent, SimpleNoteContentRef } from '@/components/SimpleNoteEditor/SimpleNoteContent';
+import { EMPTY_HTML } from '@/atoms/markdown'
+import { useHandleBottomScrollOffset } from '@/components/NoteEditor/useHandleBottomScrollOffset'
 
 interface MRDetail {
     status: string,
@@ -95,6 +98,16 @@ const  MRDetailPage:PageWithLayout<any> = () =>{
       });
     }
 
+    const send_comment = () => {
+      const currentContentHTML = editorRef.current?.editor?.getHTML();
+      const currentContentJSON = editorRef.current?.editor?.getJSON();
+      
+      console.log('保存的HTML内容:', currentContentHTML);
+      console.log('保存的JSON内容:', currentContentJSON);
+
+      //发送请求保存评论内容
+    }
+
     let conv_items = mrDetail?.conversations.map(conv => {
         let icon;
         let children;
@@ -116,6 +129,10 @@ const  MRDetailPage:PageWithLayout<any> = () =>{
     });
 
     const buttonClasses= 'cursor-pointer';
+    const editorRef = useRef<SimpleNoteContentRef>(null);
+    const onKeyDownScrollHandler = useHandleBottomScrollOffset({
+      editor: editorRef.current?.editor
+    })
 
     const tab_items: TabsProps['items'] = [
       {
@@ -126,6 +143,16 @@ const  MRDetailPage:PageWithLayout<any> = () =>{
             <Timeline items={conv_items}/>
             <h1>Add a comment</h1>
             <RichEditor setEditorState={setEditorState} setEditorHasText={setEditorHasText}/>
+            <div className='border p-6 rounded-lg'>
+              <SimpleNoteContent
+                noteId="temp" //这个暂时写死
+                ref={editorRef}
+                editable="all"
+                content={EMPTY_HTML}
+                autofocus={true}
+                onKeyDown={onKeyDownScrollHandler}
+              />
+            </div>
             <div className="flex gap-2 justify-end">
               {mrDetail && mrDetail.status === "open" &&
                 <Button
@@ -157,6 +184,15 @@ const  MRDetailPage:PageWithLayout<any> = () =>{
               >
                 {mrCommentIsPending && <DownloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
                 Comment
+              </Button>
+              <Button
+                // disabled={!login || !editorHasText}
+                onClick={() => send_comment()}
+                aria-label="New Comment"
+                className={cn(buttonClasses)}
+              >
+                {mrCommentIsPending && <DownloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
+                新的Comment
               </Button>
             </div>
           </div>
