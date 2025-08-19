@@ -1,0 +1,61 @@
+name: Mega UI
+
+on:
+  push:
+    branches:
+      - diff                               # ✅ 改为 diff 分支
+    paths:
+      - '.github/workflows/push-test.yml' 
+      - '.github/workflows/web-deploy.yml'
+      - 'moon/**'
+
+  workflow_dispatch:                      # ✅ 支持手动执行
+
+env:
+  TIPTAP_PRIVATE_REGISTRY_KEY: CjqFil0n7z4GGur+RPric21fBBeSB4R4FoNdRYOE1bQEz6AXLCoANCc+o9rLIg6Q
+
+jobs:
+  test-web-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.0.0
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - run: pnpm config set "@tiptap-pro:registry" https://registry.tiptap.dev/
+      - run: pnpm config set "//registry.tiptap.dev/:_authToken" ${{ env.TIPTAP_PRIVATE_REGISTRY_KEY }}
+
+      - name: Install dependencies
+        working-directory: ./moon
+        run: pnpm i --frozen-lockfile
+
+      - name: Run ESLint
+        working-directory: ./moon
+        run: pnpm run lint
+
+      - name: Build Next.js application
+        working-directory: ./moon
+        run: pnpm run build
