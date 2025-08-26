@@ -62,7 +62,6 @@ use crate::api_service::ApiHandler;
 use crate::model::git::CreateFileInfo;
 use crate::model::mr::MrDiffFile;
 
-
 #[derive(Clone)]
 pub struct MonoApiService {
     pub storage: Storage,
@@ -500,7 +499,6 @@ impl MonoApiService {
             }
         }
 
-
         if !failed_hashes.is_empty() {
             tracing::warn!(
                 "Failed to fetch {} blob(s): {:?}",
@@ -531,7 +529,6 @@ impl MonoApiService {
         .await;
 
         Ok(diff_output)
-
     }
 
     fn collect_page_blobs(
@@ -869,7 +866,7 @@ mod test {
         let current_page = 2u32;
         let page_size = 3u32;
 
-        let total_pages = (total_files + page_size as usize - 1) / page_size as usize;
+        let total_pages = total_files.div_ceil(page_size as usize);
         let current_page = current_page as usize;
         let page_size = page_size as usize;
 
